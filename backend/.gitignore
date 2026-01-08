@@ -1,0 +1,14 @@
+# Folder Virtual Environment
+venv/
+__pycache__/
+
+# Database
+instance/
+*.db
+
+# File Rahasia
+.env
+firebase-service-account-key.json
+
+# File OS
+.DS_Store

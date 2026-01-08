@@ -1,0 +1,308 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+    <a href="/" class="btn btn-outline-secondary btn-sm mb-3">← Kembali ke Dashboard</a>
+    <h1 class="mb-2">{{ event.title }}</h1>
+    
+    <p class="text-body-secondary">{{ event.tgl_mulai_event.strftime('%d %B %Y, %H:%M') }}</p>
+
+    <div class="row my-4">
+        <div class="col-md-4">
+            <div class="card text-bg-secondary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Terdaftar</h5>
+                    <p class="card-text fs-1 fw-bold">{{ event.registered_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-light mb-3">
+                <div class="card-body text-dark">
+                    <h5 class="card-title">Sudah Check-in</h5>
+                    <p class="card-text fs-1 fw-bold">{{ event.checked_in_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-warning mb-3">
+                <div class="card-body text-dark">
+                    <h5 class="card-title">Tingkat Kehadiran</h5>
+                    {% if event.registered_count > 0 %}
+                        <p class="card-text fs-1 fw-bold">{{ "%.0f"|format((event.checked_in_count/event.registered_count)*100) }}%</p>
+                    {% else %}
+                        <p class="card-text fs-1 fw-bold">0%</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="mt-5 mb-3">Daftar Peserta</h3>
+    
+    <button type="button" class="btn btn-warning mb-3" data-bs-toggle="modal" data-bs-target="#csvOptionsModal">
+      Download Data (.csv)
+    </button>
+    
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Nama Peserta</th>
+                <th>OK OCE ID</th>
+                <th>Status</th>
+                <th>Waktu Check-in</th>
+                <th>Aksi</th> </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %} 
+            <tr>
+                <td>{{ ticket.user.name }}</td>
+                <td>{{ ticket.user.okoce_id }}</td>
+                <td>
+                    {% if ticket.is_checked_in %}
+                        <span class="badge text-bg-success">Hadir</span>
+                    {% else %}
+                        <span class="badge text-bg-secondary">Belum Hadir</span>
+                    {% endif %}
+                </td>
+                <td>{{ ticket.check_ins[0].timestamp.strftime('%H:%M:%S') if ticket.check_ins else '-' }}</td>
+                
+                <td>
+                    <button type="button" class="btn btn-sm btn-info" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#participantDetailModal" 
+                            data-user-id="{{ ticket.user.id }}"
+                            data-event-id="{{ event.id }}"> Lihat Detail
+                    </button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">Belum ada peserta yang mendaftar.</td> </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+<div class="modal fade" id="participantDetailModal" tabindex="-1" aria-labelledby="participantDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl"> <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="participantDetailModalLabel">Detail Peserta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-body-content">
+        <div class="text-center">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="csvOptionsModal" tabindex="-1" aria-labelledby="csvOptionsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg"> <div class="modal-content">
+      <form action="{{ url_for('download_csv', event_id=event.id) }}" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title" id="csvOptionsModalLabel">Pilih Data untuk Download</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Pilih kolom yang ingin Anda sertakan dalam file CSV:</p>
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Data Peserta</h6>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nama Peserta" id="col_nama" checked><label class="form-check-label" for="col_nama">Nama Peserta</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="OK OCE ID" id="col_id"><label class="form-check-label" for="col_id">OK OCE ID</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="No. HP" id="col_hp"><label class="form-check-label" for="col_hp">No. HP</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Email" id="col_email"><label class="form-check-label" for="col_email">Email</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Provinsi" id="col_prov"><label class="form-check-label" for="col_prov">Provinsi</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Kota" id="col_kota"><label class="form-check-label" for="col_kota">Kota</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Instansi" id="col_instansi"><label class="form-check-label" for="col_instansi">Instansi</label></div>
+              
+              <h6 class="mt-3">Data Kehadiran</h6>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Status Hadir" id="col_status" checked><label class="form-check-label" for="col_status">Status Hadir</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Waktu Check-in" id="col_waktu" checked><label class="form-check-label" for="col_waktu">Waktu Check-in</label></div>
+              {% if event.has_pre_post_test %}
+              <h6 class="mt-3">Data Evaluasi (Test)</h6>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nilai Pre-Test" id="col_pre"><label class="form-check-label" for="col_pre">Nilai Pre-Test</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nilai Post-Test" id="col_post"><label class="form-check-label" for="col_post">Nilai Post-Test</label></div>
+              {% endif %}
+            
+              <h6 class="mt-3">Data UMKM (Kontak & Info)</h6>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nama Bisnis" id="col_biz_nama"><label class="form-check-label" for="col_biz_nama">Nama Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Jenis Bisnis" id="col_biz_jenis"><label class="form-check-label" for="col_biz_jenis">Jenis Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="No. HP Bisnis" id="col_biz_hp"><label class="form-check-label" for="col_biz_hp">No. HP Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Email Bisnis" id="col_biz_email"><label class="form-check-label" for="col_biz_email">Email Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Mulai Beroperasi" id="col_biz_op"><label class="form-check-label" for="col_biz_op">Mulai Beroperasi</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Marketplace" id="col_biz_mp"><label class="form-check-label" for="col_biz_mp">Marketplace</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="URL Marketplace" id="col_biz_url"><label class="form-check-label" for="col_biz_url">URL Marketplace</label></div>
+            </div>
+            
+            <div class="col-md-6">
+              <h6>Data UMKM (Alamat)</h6>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Provinsi Bisnis" id="col_biz_prov"><label class="form-check-label" for="col_biz_prov">Provinsi Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Kota Bisnis" id="col_biz_kota"><label class="form-check-label" for="col_biz_kota">Kota Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Kecamatan Bisnis" id="col_biz_kec"><label class="form-check-label" for="col_biz_kec">Kecamatan Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Kelurahan Bisnis" id="col_biz_kel"><label class="form-check-label" for="col_biz_kel">Kelurahan Bisnis</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Status Tempat" id="col_biz_tempat"><label class="form-check-label" for="col_biz_tempat">Status Tempat</label></div>
+
+              <h6 class="mt-3">Data UMKM (Legal & Keuangan)</h6>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Badan Usaha" id="col_biz_legal"><label class="form-check-label" for="col_biz_legal">Badan Usaha</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Jenis Izin" id="col_biz_izin"><label class="form-check-label" for="col_biz_izin">Jenis Izin</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nomor Izin" id="col_biz_noizin"><label class="form-check-label" for="col_biz_noizin">Nomor Izin</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nomor NPWP" id="col_biz_npwp"><label class="form-check-label" for="col_biz_npwp">Nomor NPWP</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Tahun Data Keuangan" id="col_biz_thnfinance"><label class="form-check-label" for="col_biz_thnfinance">Tahun Data Keuangan</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Omzet Tahunan" id="col_biz_omzet"><label class="form-check-label" for="col_biz_omzet">Omzet Tahunan</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Profit" id="col_biz_profit"><label class="form-check-label" for="col_biz_profit">Profit</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Aset" id="col_biz_aset"><label class="form-check-label" for="col_biz_aset">Aset</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Jumlah Karyawan" id="col_biz_karyawan"><label class="form-check-label" for="col_biz_karyawan">Jumlah Karyawan</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Jenis Pemodal" id="col_biz_pemodal"><label class="form-check-label" for="col_biz_pemodal">Jenis Pemodal</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Nama Pemodal" id="col_biz_namapemodal"><label class="form-check-label" for="col_biz_namapemodal">Nama Pemodal</label></div>
+              <div class="form-check"><input class="form-check-input" type="checkbox" name="columns" value="Jumlah Modal" id="col_biz_jmlmodal"><label class="form-check-label" for="col_biz_jmlmodal">Jumlah Modal</label></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-warning">Download CSV</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block body_js %}
+<script>
+// Helper sederhana untuk menampilkan data atau '-'
+function display(data) {
+    return data ? data : '<span class="text-muted fst-italic">-</span>';
+}
+
+var detailModal = document.getElementById('participantDetailModal');
+detailModal.addEventListener('show.bs.modal', function (event) {
+  var button = event.relatedTarget;
+  var userId = button.getAttribute('data-user-id');
+  var eventId = button.getAttribute('data-event-id');
+  
+  var modalBody = document.getElementById('modal-body-content');
+  var modalTitle = document.getElementById('participantDetailModalLabel');
+  
+  // Tampilkan spinner loading
+  modalTitle.innerText = 'Memuat Detail Peserta...';
+  modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+  // Panggil API
+  fetch('/api/admin/user/' + userId + '/details?event_id=' + eventId)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.statusText);
+        }
+        return response.json();
+    })
+    .then(data => {
+      // Mulai bangun HTML
+      var html = '<div class="row">';
+      
+      // --- Kolom 1: Data Akun User ---
+      html += '<div class="col-lg-4">';
+      html += '<h5>Data Akun</h5>';
+      html += '<p class="mb-1"><strong>Nama:</strong> ' + display(data.name) + '</p>';
+      html += '<p class="mb-1"><strong>OK OCE ID:</strong> ' + display(data.okoce_id) + '</p>';
+      html += '<p class="mb-1"><strong>No. HP:</strong> ' + display(data.phone_number) + '</p>';
+      html += '<p class="mb-1"><strong>Email:</strong> ' + display(data.email) + '</p>';
+      html += '<p class="mb-1"><strong>Alamat:</strong> ' + display(data.city) + ', ' + display(data.province) + '</p>';
+      html += '<p class="mb-1"><strong>Instansi:</strong> ' + display(data.institution) + '</p>';
+      html += '<p class="mb-1"><strong>Status Bisnis:</strong> ' + (data.has_business_flag ? 'Punya Usaha' : 'Tidak Punya') + '</p>';
+      if (data.test_scores) {
+          html += '<hr><h5>Nilai Evaluasi</h5>';
+          html += '<p class="mb-1"><strong>Pre-Test:</strong> ' + (data.test_scores.pre_test !== null ? data.test_scores.pre_test : '<span class="text-muted">Belum</span>') + '</p>';
+          html += '<p class="mb-1"><strong>Post-Test:</strong> ' + (data.test_scores.post_test !== null ? data.test_scores.post_test : '<span class="text-muted">Belum</span>') + '</p>';
+      }
+      html += '</div>'; // End col-lg-4
+      
+      // --- Kolom 2: Data UMKM ---
+      html += '<div class="col-lg-8">';
+      html += '<h5>Data UMKM</h5>';
+      
+      if (data.business_profile) {
+        var biz = data.business_profile;
+        html += '<div class="row">';
+        
+        // Sub-Kolom 1: Info & Kontak
+        html += '<div class="col-md-6">';
+        html += '<strong>Info Dasar & Kontak</strong>';
+        html += '<p class="mb-1 ps-3"><strong>Nama Usaha:</strong> ' + display(biz.business_name) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Jenis Usaha:</strong> ' + display(biz.business_type) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>No. HP Usaha:</strong> ' + display(biz.business_phone) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Email Usaha:</strong> ' + display(biz.business_email) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Mulai Beroperasi:</strong> ' + display(biz.operating_since) + '</p>';
+        
+        html += '<strong class="mt-2 d-block">Alamat</strong>';
+        html += '<p class="mb-1 ps-3"><strong>Status Alamat:</strong> ' + (biz.address_same_as_home ? 'Sama dengan rumah' : 'Berbeda') + '</p>';
+        if (!biz.address_same_as_home) {
+            html += '<p class="mb-1 ps-3"><strong>Provinsi:</strong> ' + display(biz.address_province) + '</p>';
+            html += '<p class="mb-1 ps-3"><strong>Kota:</strong> ' + display(biz.address_city) + '</p>';
+            html += '<p class="mb-1 ps-3"><strong>Kecamatan:</strong> ' + display(biz.address_district) + '</p>';
+            html += '<p class="mb-1 ps-3"><strong>Kelurahan:</strong> ' + display(biz.address_village) + '</p>';
+            html += '<p class="mb-1 ps-3"><strong>Detail:</strong> ' + display(biz.address_detail) + '</p>';
+        }
+        html += '<p class="mb-1 ps-3"><strong>Status Tempat:</strong> ' + display(biz.premise_status) + '</p>';
+        
+        html += '<strong class="mt-2 d-block">Online</strong>';
+        html += '<p class="mb-1 ps-3"><strong>Marketplace:</strong> ' + display(biz.marketplace_type) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>URL:</strong> ' + display(biz.url) + '</p>';
+        html += '</div>'; // End col-md-6
+        
+        // Sub-Kolom 2: Legal & Keuangan
+        html += '<div class="col-md-6">';
+        html += '<strong>Legalitas</strong>';
+        html += '<p class="mb-1 ps-3"><strong>Badan Usaha:</strong> ' + display(biz.legal_entity) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Punya Izin:</strong> ' + (biz.has_license ? 'Ya' : 'Tidak') + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Jenis Izin:</strong> ' + display(biz.license_type) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Nomor Izin:</strong> ' + display(biz.license_number) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Punya NPWP:</strong> ' + (biz.has_npwp ? 'Ya' : 'Tidak') + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Nomor NPWP:</strong> ' + display(biz.npwp_number) + '</p>';
+        
+        html += '<strong class="mt-2 d-block">Keuangan (Tahun: ' + display(biz.finance_year) + ')</strong>';
+        html += '<p class="mb-1 ps-3"><strong>Omzet:</strong> ' + display(biz.omzet_range) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Profit:</strong> ' + display(biz.profit) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Aset:</strong> ' + display(biz.asset_value) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Karyawan:</strong> ' + display(biz.employee_count) + '</p>';
+        
+        html += '<strong class="mt-2 d-block">Pemodalan</strong>';
+        html += '<p class="mb-1 ps-3"><strong>Punya Modal:</strong> ' + (biz.has_funding ? 'Ya' : 'Tidak') + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Jenis Pemodal:</strong> ' + display(biz.funder_type) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Nama Pemodal:</strong> ' + display(biz.funder_name) + '</p>';
+        html += '<p class="mb-1 ps-3"><strong>Jumlah:</strong> ' + display(biz.amount) + '</p>';
+        html += '</div>'; // End col-md-6
+        
+        html += '</div>'; // End row
+      } else if (data.has_business_flag) {
+        html += '<p class="fst-italic text-muted">User ini menandai "Punya Usaha" tapi belum melengkapi data UMKM.</p>';
+      } else {
+         html += '<p class="fst-italic text-muted">User ini tidak memiliki usaha.</p>';
+      }
+      
+      html += '</div>'; // End col-lg-8
+      html += '</div>'; // End row
+      
+      // Masukkan HTML ke modal body
+      modalTitle.innerText = 'Detail Peserta: ' + data.name;
+      modalBody.innerHTML = html;
+    })
+    .catch(error => {
+      console.error('Error fetching participant details:', error);
+      modalTitle.innerText = 'Error';
+      modalBody.innerHTML = '<p class="text-danger">Gagal memuat data. Coba lagi.</p>';
+    });
+});
+</script>
+{% endblock %}

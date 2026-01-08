@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard Panitia{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Event Hari Ini</h2>
+    
+    <div class="row">
+        {% for event in events %}
+            {% set start_window = event.tgl_mulai_event - timedelta(hours=3) %}
+            {% set is_open = now >= start_window %}
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 {% if is_open %}border-primary{% else %}border-secondary{% endif %}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ event.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            {{ event.tgl_mulai_event.strftime('%H:%M') }} - {{ event.tgl_selesai_event.strftime('%H:%M') }} WIB
+                        </h6>
+                        <p class="card-text">{{ event.tempat_event }}</p>
+                        
+                        {% if is_open %}
+                            <a href="/event/{{ event.id }}/scanner" class="btn btn-primary w-100">
+                                <i class="bi bi-qr-code-scan"></i> Mulai Check-in
+                            </a>
+                        {% else %}
+                            <button class="btn btn-secondary w-100" disabled>
+                                Check-in dibuka pukul {{ start_window.strftime('%H:%M') }}
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <h4 class="text-muted">Tidak ada event yang dijadwalkan hari ini.</h4>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

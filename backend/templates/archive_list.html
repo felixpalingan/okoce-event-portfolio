@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block title %}Event Diarsipkan{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Event Diarsipkan</h1>
+        <a href="/" class="btn btn-outline-secondary">Kembali ke Dashboard</a>
+    </div>
+
+    <div class="card bg-light mb-3">
+        <div class="card-body py-2">
+            <form method="GET" action="{{ url_for('archived_events_list') }}" class="row g-2 align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" name="search" placeholder="Cari event arsip..." value="{{ current_search }}">
+                        <button class="btn btn-outline-secondary" type="submit">Cari</button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <select name="per_page" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+                        <option value="5" {% if current_per_page == 5 %}selected{% endif %}>5</option>
+                        <option value="10" {% if current_per_page == 10 %}selected{% endif %}>10</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form id="bulkUnarchiveForm" method="POST" action="{{ url_for('bulk_unarchive') }}">
+        
+        <div class="mb-2" id="bulkActions" style="display: none;">
+            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Kembalikan event terpilih ke Dashboard?')">
+                <i class="bi bi-arrow-counterclockwise"></i> Kembalikan Terpilih
+            </button>
+        </div>
+
+        <table class="table table-hover align-middle bg-white shadow-sm rounded">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                    <th>Nama Event</th>
+                    <th>Tanggal Mulai</th>
+                    <th>Jenis</th>
+                    <th>Tempat</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td><input type="checkbox" name="event_ids" value="{{ event.id }}" class="form-check-input event-checkbox"></td>
+                    <td><strong>{{ event.title }}</strong></td>
+                    <td>{{ event.tgl_mulai_event.strftime('%d %b %Y, %H:%M') }}</td>
+                    <td><span class="badge text-bg-info">{{ event.jenis_event }}</span></td>
+                    <td>{{ event.tempat_event }}</td>
+                    <td>
+                        <a href="/event/{{ event.id }}" class="btn btn-sm btn-outline-primary">Detail</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center py-4">Tidak ada event arsip.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </form>
+    
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('archived_events_list', page=pagination.prev_num, search=current_search, per_page=current_per_page) }}">Sebelumnya</a>
+            </li>
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('archived_events_list', page=page_num, search=current_search, per_page=current_per_page) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('archived_events_list', page=pagination.next_num, search=current_search, per_page=current_per_page) }}">Selanjutnya</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.event-checkbox');
+            const bulkActions = document.getElementById('bulkActions');
+
+            function toggleBulkActions() {
+                let anyChecked = false;
+                checkboxes.forEach(cb => { if(cb.checked) anyChecked = true; });
+                bulkActions.style.display = anyChecked ? 'block' : 'none';
+            }
+
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+                toggleBulkActions();
+            });
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', toggleBulkActions);
+            });
+        });
+    </script>
+{% endblock %}

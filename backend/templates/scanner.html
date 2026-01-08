@@ -1,0 +1,216 @@
+{% extends "layout.html" %}
+
+{% block title %}Scanner - {{ event.title }}{% endblock %}
+
+{% block head_css %}
+<style>
+    /* Sembunyikan input field asli, tapi buat tetap bisa difokuskan */
+    #scanner-input {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+    }
+    
+    /* Tampilan visual untuk status scanner */
+    #scanner-container {
+        cursor: pointer; /* Menunjukkan bahwa area ini bisa diklik untuk fokus */
+    }
+
+    /* Tampilan visual "Ready" (Biru) */
+    .scanner-status {
+        border-radius: 12px;
+        padding: 40px;
+        transition: background-color 0.3s ease;
+    }
+    .scanner-status.ready {
+        background-color: #e7f3ff; /* Biru muda */
+        border: 2px dashed #0d6efd; /* Biru */
+    }
+    .scanner-status.ready .icon {
+        color: #0d6efd;
+    }
+
+    /* Tampilan "Success" (Hijau) */
+    .scanner-status.success {
+        background-color: #e6f9f0; /* Hijau muda */
+        border: 2px solid #198754; /* Hijau */
+    }
+    .scanner-status.success .icon {
+        color: #198754;
+    }
+
+    /* Tampilan "Error" (Merah) */
+    .scanner-status.error {
+        background-color: #fdf0f1; /* Merah muda */
+        border: 2px solid #dc3545; /* Merah */
+    }
+    .scanner-status.error .icon {
+        color: #dc3545;
+    }
+
+    .icon {
+        font-size: 80px;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <h4 class="fw-bold">{{ event.title }}</h4>
+            <span class="badge bg-secondary">Scanner Aktif</span>
+        </div>
+        
+        <input type="text" id="scanner-input" autofocus>
+        <input type="hidden" id="event-id" value="{{ event.id }}">
+
+        <div id="scanner-container">
+            <div id="status-box" class="scanner-status text-center ready">
+                <div id="status-icon" class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16">
+                      <path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 0 .5M4.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m7 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m3.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5M0 11.5a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m4.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m7 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m3.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5M.5 15a.5.5 0 0 1 0 1h3a.5.5 0 0 1 0-1h-3Zm4.5 0a.5.5 0 0 1 0 1h3a.5.5 0 0 1 0-1h-3Zm7 0a.5.5 0 0 1 0 1h3a.5.5 0 0 1 0-1h-3Z"/><path d="M1.5 4h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5M2 11h12V5H2z"/></svg>
+                </div>
+                <h3 id="status-text" class="mt-3">SIAP MEMINDAI</h3>
+                <p id="status-detail" class="fs-5">Gunakan scanner untuk check-in tiket event ini.</p>
+            </div>
+        </div>
+        
+        {% if event.has_pre_post_test %}
+        <div class="d-grid mt-4">
+            <button id="btn-open-test" class="btn btn-warning btn-lg" onclick="openPostTest()">
+                <i class="bi bi-unlock-fill"></i> Buka Akses Post-Test Sekarang
+            </button>
+            <small class="text-center text-muted mt-2">Tombol ini mengaktifkan Post-Test secara manual untuk semua peserta.</small>
+        </div>
+        {% endif %}
+
+        <h4 class="mt-5">Riwayat Scan Terakhir:</h4>
+        <ul id="scan-history" class="list-group">
+            <li class="list-group-item text-muted">Belum ada data scan...</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block body_js %}
+<script>
+    const scannerInput = document.getElementById('scanner-input');
+    const eventId = document.getElementById('event-id').value; 
+    const statusBox = document.getElementById('status-box');
+    const statusIcon = document.getElementById('status-icon');
+    const statusText = document.getElementById('status-text');
+    const statusDetail = document.getElementById('status-detail');
+    const scanHistory = document.getElementById('scan-history');
+    const container = document.getElementById('scanner-container');
+    
+    const iconReady = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" class="bi bi-qr-code-scan" viewBox="0 0 16 16"><path d="M0 .5A.5.5 0 0 1 .5 0h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 0 .5M4.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m7 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m3.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5M0 11.5a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m4.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m7 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5m3.5 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5M.5 15a.5.5 0 0 1 0 1h3a.5.5 0 0 1 0-1h-3Zm4.5 0a.5.5 0 0 1 0 1h3a.5.5 0 0 1 0-1h-3Zm7 0a.5.5 0 0 1 0 1h3a.5.5 0 0 1 0-1h-3Z"/><path d="M1.5 4h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5M2 11h12V5H2z"/></svg>`;
+    const iconSuccess = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`;
+    const iconError = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" class="bi bi-x-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/></svg>`;
+
+    function focusInput() {
+        scannerInput.focus();
+    }
+    
+    window.onload = focusInput;
+    container.onclick = focusInput;
+
+    function setStatus(status, title, message) {
+        statusBox.classList.remove('ready', 'success', 'error');
+        statusBox.classList.add(status);
+        
+        if (status === 'success') {
+            statusIcon.innerHTML = iconSuccess;
+        } else if (status === 'error') {
+            statusIcon.innerHTML = iconError;
+        } else { 
+            statusIcon.innerHTML = iconReady;
+        }
+        
+        statusText.innerText = title;
+        statusDetail.innerText = message;
+    }
+
+    function addHistory(message, status) {
+        const placeholder = document.querySelector("#scan-history .text-muted");
+        if (placeholder) placeholder.remove();
+        
+        const li = document.createElement('li');
+        li.className = `list-group-item d-flex justify-content-between align-items-center list-group-item-${status}`;
+        
+        const time = new Date().toLocaleTimeString('id-ID'); 
+        li.innerText = `${time} - ${message}`;
+        
+        scanHistory.prepend(li);
+        
+        if (scanHistory.children.length > 50) scanHistory.lastChild.remove();
+    }
+    
+    function openPostTest() {
+        if(!confirm("Anda yakin ingin membuka Post-Test untuk semua peserta sekarang?")) return;
+        
+        fetch(`/api/event/${eventId}/open-post-test`, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            const btn = document.getElementById('btn-open-test');
+            btn.disabled = true;
+            btn.innerText = "Post-Test Telah Dibuka";
+        })
+        .catch(err => alert("Gagal membuka test: " + err));
+    }
+
+
+    scannerInput.addEventListener('change', async (e) => {
+        const ticketCode = e.target.value;
+        
+        if (!ticketCode) return; 
+        
+        setStatus('ready', 'MEMPROSES...', `Kode: ${ticketCode}`);
+        
+        try {
+            const response = await fetch("/api/checkin", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    'ticket_code': ticketCode,
+                    'event_id': eventId 
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) { 
+                setStatus('success', data.message || 'Check-in Berhasil', `${data.user_name} - ${data.event_title}`);
+                addHistory(`${data.user_name}`, 'success');
+            } else {
+                setStatus('error', data.message || 'Error Tidak Dikenal', `Kode: ${ticketCode}`);
+                addHistory(`${data.message}`, 'danger');
+            }
+            
+        } catch (err) {
+            console.error("Fetch error:", err);
+            setStatus('error', 'Error Jaringan', 'Gagal terhubung ke server.');
+            addHistory(`Error Jaringan`, 'danger');
+        }
+        
+        e.target.value = '';
+        focusInput();
+        
+        setTimeout(() => {
+            if (!statusBox.classList.contains('ready')) {
+                 setStatus('ready', 'SIAP MEMINDAI', 'Gunakan scanner untuk check-in tiket event ini.');
+            }
+        }, 3000); 
+    });
+
+</script>
+{% endblock %}

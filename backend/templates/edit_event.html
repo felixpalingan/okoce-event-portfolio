@@ -1,0 +1,173 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Event: {{ event.title }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Edit Event</h1>
+
+<form method="POST" action="/event/{{ event.id }}/edit" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <label for="nama_event" class="form-label">Nama Event</label>
+                <input type="text" class="form-control" id="nama_event" name="nama_event" value="{{ event.title }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="deskripsi_event" class="form-label">Deskripsi Event</label>
+                <textarea class="form-control" id="deskripsi_event" name="deskripsi_event" rows="8" required>{{ event.description }}</textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="pic_event" class="form-label">PIC Event</label>
+                    <input type="text" class="form-control" id="pic_event" name="pic_event" value="{{ event.pic_event }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="narasumber" class="form-label">Narasumber (pisah dengan koma)</label>
+                    <input type="text" class="form-control" id="narasumber" name="narasumber" value="{{ event.narasumber }}" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="tgl_mulai" class="form-label">Waktu Mulai Event</label>
+                    <input type="datetime-local" class="form-control" id="tgl_mulai" name="tgl_mulai" value="{{ event_wib.tgl_mulai }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="tgl_selesai" class="form-label">Waktu Selesai Event</label>
+                    <input type="datetime-local" class="form-control" id="tgl_selesai" name="tgl_selesai" value="{{ event_wib.tgl_selesai }}" required>
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="tgl_buka" class="form-label">Buka Pendaftaran</label>
+                    <input type="datetime-local" class="form-control" id="tgl_buka" name="tgl_buka" value="{{ event_wib.tgl_buka }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="tgl_tutup" class="form-label">Tutup Pendaftaran</label>
+                    <input type="datetime-local" class="form-control" id="tgl_tutup" name="tgl_tutup" value="{{ event_wib.tgl_tutup }}" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Pengaturan Event</h5>
+                    <div class="mb-3">
+                        <label for="sifat_pelatihan" class="form-label">Sifat Pelatihan</label>
+                        <select class="form-select" id="sifat_pelatihan" name="sifat_pelatihan">
+                            <option value="Umum" {% if event.sifat_pelatihan == 'Umum' %}selected{% endif %}>Umum</option>
+                            <option value="Wajib" {% if event.sifat_pelatihan == 'Wajib' %}selected{% endif %}>Wajib</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="jenis_event" class="form-label">Jenis Event</label>
+                        <select class="form-select" id="jenis_event" name="jenis_event">
+                            <option value="Public" {% if event.jenis_event == 'Public' %}selected{% endif %}>Public</option>
+                            <option value="Private" {% if event.jenis_event == 'Private' %}selected{% endif %}>Private</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tempat_event" class="form-label">Tempat Event</label>
+                        <select class="form-select" id="tempat_event" name="tempat_event">
+                            <option value="Offline" {% if event.tempat_event == 'Offline' %}selected{% endif %}>Offline</option>
+                            <option value="Online" {% if event.tempat_event == 'Online' %}selected{% endif %}>Online</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pembayaran" class="form-label">Harga Tiket (isi 0 jika gratis)</label>
+                        <input type="number" class="form-control" id="pembayaran" name="pembayaran" value="{{ event.price }}" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="slot_peserta" class="form-label">Slot Peserta</label>
+                        <input type="number" class="form-control" id="slot_peserta" name="slot_peserta" value="{{ event.slot_peserta }}" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gambar_event" class="form-label">Ganti Poster Event (Opsional)</label>
+                        {% if event.image_filename %}
+                            <img src="{{ url_for('serve_upload', filename=event.image_filename) }}" class="img-fluid rounded mb-2" alt="Poster saat ini">
+                        {% endif %}
+                        <input class="form-control" type="file" id="gambar_event" name="gambar_event">
+                    </div>
+                    <div class="mb-3">
+                        <label for="online_event_url" class="form-label">Link Event Online (Opsional)</label>
+                        <input type="url" class="form-control" id="online_event_url" name="online_event_url" 
+                            value="{{ event.online_event_url if event else '' }}" 
+                            placeholder="https://zoom.us/j/...">
+                        <small class="form-text text-muted">Isi jika "Tempat Event" adalah "Online".</small>
+                    </div>
+                    <hr>
+                    <div class="form-check form-switch mb-3">
+                      <input class="form-check-input" type="checkbox" role="switch" id="is_umkm_data_required" name="is_umkm_data_required" {% if event.is_umkm_data_required %}checked{% endif %}>
+                      <label class="form-check-label" for="is_umkm_data_required"><b>Wajib melengkapi data UMKM?</b></label>
+                      <small class="form-text text-muted d-block">Jika dicentang, hanya user yang sudah mengisi data UMKM yang bisa mendaftar.</small>
+                    </div>
+                    <div class="card mt-3 border-info">
+                        <div class="card-header bg-info text-white">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="has_pre_post_test" name="has_pre_post_test" {% if event.has_pre_post_test %}checked{% endif %}>
+                                <label class="form-check-label fw-bold" for="has_pre_post_test">Adakan Pre & Post Test?</label>
+                            </div>
+                        </div>
+                        <div class="card-body" id="test_questions_container" style="display: {% if event.has_pre_post_test %}block{% else %}none{% endif %};">
+                            <small class="text-muted d-block mb-3">Edit 5 pertanyaan dan kunci jawabannya.</small>
+                            
+                            {% set questions = event.questions.order_by('question_number').all() %}
+                            
+                            {% for i in range(1, 6) %}
+                                {% set q = None %}
+                                {% if questions|length >= i %}
+                                    {% set q = questions[i-1] %}
+                                {% endif %}
+
+                                <div class="border p-2 mb-3 rounded bg-light">
+                                    <h6 class="fw-bold">Soal No. {{ i }}</h6>
+                                    <div class="mb-2">
+                                        <input type="text" class="form-control form-control-sm" name="q_{{i}}_text" placeholder="Pertanyaan..." value="{{ q.question_text if q else '' }}">
+                                    </div>
+                                    <div class="row g-1 mb-2">
+                                        <div class="col-6"><input type="text" class="form-control form-control-sm" name="q_{{i}}_a" placeholder="Opsi A" value="{{ q.option_a if q else '' }}"></div>
+                                        <div class="col-6"><input type="text" class="form-control form-control-sm" name="q_{{i}}_b" placeholder="Opsi B" value="{{ q.option_b if q else '' }}"></div>
+                                        <div class="col-6"><input type="text" class="form-control form-control-sm" name="q_{{i}}_c" placeholder="Opsi C" value="{{ q.option_c if q else '' }}"></div>
+                                        <div class="col-6"><input type="text" class="form-control form-control-sm" name="q_{{i}}_d" placeholder="Opsi D" value="{{ q.option_d if q else '' }}"></div>
+                                    </div>
+                                    <div class="input-group input-group-sm">
+                                        <label class="input-group-text">Kunci Jawaban</label>
+                                        <select class="form-select" name="q_{{i}}_answer">
+                                            <option value="A" {% if q and q.correct_answer == 'A' %}selected{% endif %}>A</option>
+                                            <option value="B" {% if q and q.correct_answer == 'B' %}selected{% endif %}>B</option>
+                                            <option value="C" {% if q and q.correct_answer == 'C' %}selected{% endif %}>C</option>
+                                            <option value="D" {% if q and q.correct_answer == 'D' %}selected{% endif %}>D</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+{% block body_js %}
+<script>
+    // Toggle Form Soal
+    const toggleTest = document.getElementById('has_pre_post_test');
+    const containerTest = document.getElementById('test_questions_container');
+    
+    if(toggleTest){
+        toggleTest.addEventListener('change', function() {
+            containerTest.style.display = this.checked ? 'block' : 'none';
+            // Wajibkan input jika dicentang (Opsional, biar user gak lupa isi)
+            const inputs = containerTest.querySelectorAll('input[type="text"]');
+            inputs.forEach(input => {
+                if(this.checked) input.setAttribute('required', 'required');
+                else input.removeAttribute('required');
+            });
+        });
+    }
+</script>
+{% endblock %}
