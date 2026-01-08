@@ -189,5 +189,3 @@ Developed as a Final Capstone Project for **Universitas Trisakti** (2025).
 
 * **Role:** Full Stack Developer
 * **Focus:** Mobile Development, Backend Architecture, & System Integration.
-
-"# okoce-event-portfolio" 
